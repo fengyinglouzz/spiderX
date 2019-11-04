@@ -14,7 +14,7 @@ def get_cookies():
 
 def totxt(datas, name):
     file_dir = os.path.split(os.path.realpath(__file__))[
-                   0] + os.sep + "results"
+                   0] + os.sep + "jiuzhaigou"
     if not os.path.isdir(file_dir):
         os.mkdir(file_dir)
     file_path = file_dir + os.sep + name + ".txt"
@@ -23,7 +23,7 @@ def totxt(datas, name):
     print(datas)
 
 
-def toexcel(datas):
+def toexcel(datas, name):
     wb = xlwt.Workbook(encoding='utf8')
     sheet = wb.add_sheet("Sheet 1")
     style_heading = xlwt.easyxf("""
@@ -67,12 +67,18 @@ def toexcel(datas):
         sheet.write(data_row, 7, i["time"])
         sheet.write(data_row, 8, i["content"])
         data_row = data_row + 1
-    wb.save("test.xls")
+    file_dir = os.path.split(os.path.realpath(__file__))[
+                   0] + os.sep + "jiuzhaigou"
+    if not os.path.isdir(file_dir):
+        os.mkdir(file_dir)
+    file_path = file_dir + os.sep + name + ".xls"
+    wb.save(file_path)
 
 
-def search(keyword="", time="", page=1, file=""):
+def search(keyword=[], time="", page=1, file=""):
+    key1 = keyword[0]
     url = "https://s.weibo.com/weibo?q=%s&scope=ori&suball=1&timescope=custom:%s&Refer=g&page=%s" \
-          % (keyword, time, page)
+          % (key1, time, page)
     res_list = []
     headers = {
         "Cookie": get_cookies(),
@@ -116,7 +122,10 @@ def search(keyword="", time="", page=1, file=""):
             if icon.get_text() == "2":
                 address = icon.parent.get_text()[1:]
                 address_href = icon.parent.get("href")
-                new_address = requests.get(address_href, allow_redirects=False, headers=headers).headers["Location"]
+                if "http" in address_href:
+                    new_address = requests.get(address_href, allow_redirects=False, headers=headers).headers["Location"]
+                else:
+                    new_address = requests.get("http:" + address_href, allow_redirects=False, headers=headers).headers["Location"]
                 address_href = new_address
 
         if rz1 or rz2 or rz3:
@@ -134,8 +143,14 @@ def search(keyword="", time="", page=1, file=""):
             "date": date,
             "from": from_,
         }
-        totxt(tmp, file)
         res_list.append(tmp)
+        if len(keyword) > 1:
+            if keyword[1] in content:
+                totxt(tmp, file)
+                res_list.append(tmp)
+        else:
+            totxt(tmp, file)
+            res_list.append(tmp)
     return res_list
 
 
@@ -164,6 +179,7 @@ def run(keyword, start, end, file):
                 break
             result += res_list
             page += 1
+    # toexcel(result, file)
 
 
 if __name__ == '__main__':
